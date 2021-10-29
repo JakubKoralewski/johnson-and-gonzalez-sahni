@@ -1,0 +1,5 @@
+out
+.idea
+.vs
+cmake-build-debug
+*.swp
