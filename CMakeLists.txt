@@ -3,9 +3,11 @@
 #
 cmake_minimum_required (VERSION 3.8)
 
-project ("prg1")
+project ("imp1")
 
 # Add source to this project's executable.
-add_executable (prg1 "prg1.c" "prg1.h")
+add_executable (imp1 "imp1.c")
 
 # TODO: Add tests and install targets if needed.
+enable_testing()
+add_test(erd test_erd)

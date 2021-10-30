@@ -3,3 +3,5 @@ out
 .vs
 cmake-build-debug
 *.swp
+*.exe
+*.obj
