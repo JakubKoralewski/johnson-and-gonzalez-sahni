@@ -16,7 +16,7 @@
 #include <limits.h>
 
 #define TIME unsigned long
-#define INDEX unsigned int
+#define INDEX size_t
 
 typedef struct {
 	INDEX j;
@@ -51,7 +51,7 @@ void schedule_print(Schedule* schedule) {
 	for (size_t i = 0; i < schedule->input->length; i++) {
 		Job* job = schedule->input->buffer + i;
 		ScheduledJob* schedule_data = schedule->schedule + i;
-		printf("Job #%d: start: %lu; end: %lu\n", job->j, schedule_data->start, schedule_data->end);
+		printf("Job #%ld: start: %lu; end: %lu\n", job->j, schedule_data->start, schedule_data->end);
 	}
 }
 // num digits of MAX_ULONG_LEN 18446744073709551615
@@ -173,7 +173,7 @@ success:
 		num_rows++;
 	}
 	if (num_rows == 0) {
-		fprintf(stderr, "Not enough values in file");
+		fprintf(stderr, "Not enough values in file\n");
 		goto error_cleanup;
 	}
 	input->length = num_rows;
@@ -181,7 +181,7 @@ success:
 	return 0;
 
 no_header_row:
-	fprintf(stderr, "No header row in file: %s", path);
+	fprintf(stderr, "No header row in file: %s\n", path);
 	// also needs error cleanup
 
 error_cleanup:

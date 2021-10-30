@@ -12,6 +12,7 @@ char* file_path(char* path) {
 	if ((slash = strrchr(FILE, '/'))) {
 		size_t offset = slash - FILE;
 		alloc_size = offset + strlen(path) + 1;
+		//FIXME: not freed
 		file = malloc(alloc_size);
 		strncpy(file, FILE, alloc_size);
 		memset(file + offset, 0, alloc_size - offset);

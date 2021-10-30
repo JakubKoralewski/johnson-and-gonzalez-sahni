@@ -41,8 +41,10 @@ void print_help_menu() {
 
 int main(int argc, char** argv) {
 	int rv = 0;
+	Input input = {.buffer = NULL};
+	Schedule schedule = {.schedule = NULL};
 	if(argc != 3) {
-		fprintf(stderr, "Invalid number of arguments.");
+		fprintf(stderr, "Invalid number of arguments. (%d) should be 2 (mode, path)", argc-1);
 		rv = 123;
 		goto error_with_help;
 	}
@@ -51,13 +53,11 @@ int main(int argc, char** argv) {
 		fprintf(stderr, "No path given.");
 		goto error_with_help;
 	}
-	Input input = {0};
 	if ((rv = read_input_from_file(path, &input))) {
 		fprintf(stderr, "Couldn't read file %s\n", path);
 		goto cleanup;
 	}
 	char* mode = argv[1];
-	Schedule schedule = {0};
 	switch((rv = imp1(&schedule, &input, mode))) {
 		case 0:
 			// Success
