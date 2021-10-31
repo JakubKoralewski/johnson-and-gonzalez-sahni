@@ -6,14 +6,17 @@
 #ifdef _WIN32
 	#include <malloc.h>
 	#define strcasecmp _stricmp
+	#define getcwd _getcwd
 #else
 	#include <alloca.h>
 	#include <strings.h>
+	#include <unistd.h>
 #endif
 
 #include <string.h>
 #include <stdlib.h>
 #include <limits.h>
+
 
 #define TIME unsigned long
 #define INDEX size_t
@@ -51,7 +54,7 @@ void schedule_print(Schedule* schedule) {
 	for (size_t i = 0; i < schedule->input->length; i++) {
 		Job* job = schedule->input->buffer + i;
 		ScheduledJob* schedule_data = schedule->schedule + i;
-		printf("Job #%ld: start: %lu; end: %lu\n", job->j, schedule_data->start, schedule_data->end);
+		printf("Job #%zd: start: %lu; end: %lu\n", job->j, schedule_data->start, schedule_data->end);
 	}
 }
 // num digits of MAX_ULONG_LEN 18446744073709551615
@@ -68,10 +71,12 @@ int read_input_from_file(const char* path, Input* input) {
 	char line_buffer[LINE_BUFFER_SIZE];
 	size_t num_rows = 0;
 
-	FILE* file;
+	FILE* file = NULL;
 	if (!(file = fopen(path, "rb"))) {
-		perror("Couldn't open file");
-		return 1;
+		char cwd[512];
+		getcwd(cwd, sizeof(cwd));
+		fprintf(stderr, "Couldn't open file '%s' in cwd '%s'; FILE: '%s'\n", path, cwd, __FILE__);
+		goto error_cleanup;
 	}
 	// e.g. {P, R, NP,NP} corresponds to header p,r; 5th value is sentinel to stop loop over this array
 	unsigned char order_prdw[5] = {NO_PROPERTY, NO_PROPERTY, NO_PROPERTY, NO_PROPERTY, NO_PROPERTY};
@@ -187,7 +192,9 @@ no_header_row:
 error_cleanup:
 	free(input->buffer);
 	input->buffer = NULL;
-	fclose(file);
+	if (file != NULL) {
+		fclose(file);
+	}
 	return 1;
 }
 
