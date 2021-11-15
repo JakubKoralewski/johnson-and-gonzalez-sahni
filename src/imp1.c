@@ -3,19 +3,19 @@
 #include "schedule.c"
 
 int min_ready_time(Job* a, Job* b) {
-	return a->prdw[R] < b->prdw[R];
+	return a->prdw[R] > b->prdw[R];
 }
 
 int min_deadline(Job* a, Job* b) {
-	return a->prdw[D] < b->prdw[D];
+	return a->prdw[D] > b->prdw[D];
 }
 
 int min_processing_time(Job* a, Job* b) {
-	return a->prdw[P] < b->prdw[P];
+	return a->prdw[P] > b->prdw[P];
 }
 
 int min_weighted_processing_time(Job* a, Job* b) {
-	return (double) a->prdw[P] / (double) a->prdw[W] < (double) b->prdw[P] / (double) b->prdw[W];
+	return (double) a->prdw[P] / (double) a->prdw[W] > (double) b->prdw[P] / (double) b->prdw[W];
 }
 
 int imp1(Schedule* out_schedule, Input* in_input, const char* mode) {
@@ -33,7 +33,7 @@ int imp1(Schedule* out_schedule, Input* in_input, const char* mode) {
 		fprintf(stderr, "Invalid mode %s\n", mode);
 		return ERROR_WITH_HELP;
 	}
-	heapsort(in_input->buffer, in_input->length, sizeof(Job), cmp);
+	qsort(in_input->buffer, in_input->length, sizeof(Job), cmp);
 	schedule_new(out_schedule, in_input);
 	return rv;
 }

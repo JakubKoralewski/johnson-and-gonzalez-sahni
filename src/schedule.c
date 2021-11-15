@@ -210,45 +210,7 @@ size_t index_parent(size_t child) {
 	return (child - 1) / 2;
 }
 
-typedef const int (* COMPARE_FUNC)(void*, void*);
-
-void sift_up(void* buffer, size_t start, size_t end, size_t size, COMPARE_FUNC cmp) {
-	size_t child = end;
-	while (child > start) {
-		size_t parent = index_parent(child);
-		void* parent_pos = (void*) ((char*) buffer + parent * size);
-		void* child_pos = (void*) ((char*) buffer + child * size);
-		if (cmp(parent_pos, child_pos)) {
-			swap(parent_pos, child_pos, size);
-			child = parent;
-		} else {
-			return;
-		}
-	}
-}
-
-// https://en.wikipedia.org/wiki/Heapsort
-void heapify(void* buffer, size_t length, size_t size, COMPARE_FUNC cmp) {
-	// Index of first child of root
-	size_t end = 1;
-
-	while (end < length) {
-		sift_up(buffer, 0, end, size, cmp);
-		end++;
-	}
-}
-
-
-// Probably should be replaced with a more efficient/tested solution: https://github.com/swenson/sort
-void heapsort(void* buffer, size_t length, size_t size, COMPARE_FUNC cmp) {
-	heapify(buffer, length, size, cmp);
-	size_t end = length - 1;
-	while (end > 0) {
-		swap((void*) ((char*) buffer + end * size), (void*) buffer, size);
-		heapify(buffer, end, size, cmp);
-		end--;
-	}
-}
+typedef int (* COMPARE_FUNC)(const void*, const void*);
 
 #define ERROR_WITH_HELP 789
 
