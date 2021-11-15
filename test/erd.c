@@ -29,7 +29,7 @@ int main() {
 		assert(rv == 0, "%s", "imp1() call should succeed");
 	}
 	for (int i = 0; i < len; i++) {
-		assert(schedule.input->buffer[i].j == i + 1, "%s (len %d) was %u %u %u", "1,2,3 order", len,
+		assert(schedule.input->buffer[i].j == i + 1, "%s (len %d) was %zu %zu %zu", "1,2,3 order", len,
 		       input.buffer[0].j, input.buffer[1].j, input.buffer[2].j);
 	}
 	assert(schedule.schedule[0].start == 2, "%s", "ready time of first job");

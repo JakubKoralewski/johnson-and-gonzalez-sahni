@@ -8,11 +8,22 @@
 	#define SLASH "/"
 //#endif
 
-int make_file_path_relative_to_src_file(const char* relative_path_to_input, char* path) {
+#define TEST_DIR_MAX_SIZE 1024
+
+
+// Assumes the path already has the TEST_DIR as the beginning
+int make_file_path_relative_to_src_file(const char* relative_path_to_input, char (* path)[TEST_DIR_MAX_SIZE]) {
 	fprintf(stderr, "TEST_DIR: " TEST_DIR "\n");
-	memcpy(path + strlen(TEST_DIR), relative_path_to_input, strlen(relative_path_to_input));
-	unsigned short new_len = strlen(TEST_DIR) + strlen(relative_path_to_input);
-	path[new_len] = '\0';
+	const size_t test_dir_len = strlen(TEST_DIR);
+	if(test_dir_len >= TEST_DIR_MAX_SIZE) {
+		fprintf(stderr, "TEST_DIR too large (%zu)", test_dir_len);
+		return 1;
+	}
+	// Append the path to input to test directory
+	memcpy(*path + test_dir_len, relative_path_to_input, strlen(relative_path_to_input));
+	// End string
+	unsigned short new_len = test_dir_len + strlen(relative_path_to_input);
+	(*path)[new_len] = '\0';
 
 	return 0;
 }
@@ -24,12 +35,12 @@ void check_deadline_of_first_row_is_infinity(Input* input) {
 #define I(a) "inputs" SLASH a
 int main() {
 	Input input;
-	char path[512] = TEST_DIR;
+	char path[TEST_DIR_MAX_SIZE] = TEST_DIR;
 
 	struct {
 		const char* desc;
 		const char* path;
-		const void (*check)(Input*);
+		void (*check)(Input*);
 	} good_files[] = {
 		{
 			.desc = "Inf in middle file\n",
@@ -48,7 +59,7 @@ int main() {
 
 	for (int i = 0; i < sizeof(good_files) / sizeof(good_files[0]); i++) {
 		printf("File should be ok: %s", good_files[i].desc);
-		if (make_file_path_relative_to_src_file(good_files[i].path, &path)) {
+		if(make_file_path_relative_to_src_file(good_files[i].path, &path)) {
 			exit(1);
 		};
 		assert_eq(read_input_from_file(path, &input), 0, "%d", "%d", "");
