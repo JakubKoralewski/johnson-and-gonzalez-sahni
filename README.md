@@ -1,4 +1,4 @@
-Top open in Visual Studio Community 2019:
+To open in Visual Studio Community 2019:
 
 1. Start the Visual Studio Community 2019 program.
 2. Click the open folder button.
@@ -16,8 +16,7 @@ The program expects to be run in the following way:
 ./imp1.exe spt path_to_file.txt
 ./imp1.exe wspt path_to_file.txt
 
+See help menu by running `./imp1.exe help` for more detailed instructions.
 
-Running a scheduling rule on a file without the data which is used to sort results in
-undefined behavior, as the sorting algorithm used may be unstable when sorting equal values.
-
-Files not containing the required values for the given rules will error.
+See the `test/inputs` directory for examples of input files.
+See the `test/*.c` files for examples used to test the rules.
