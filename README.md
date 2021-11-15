@@ -19,3 +19,5 @@ The program expects to be run in the following way:
 
 Running a scheduling rule on a file without the data which is used to sort results in
 undefined behavior, as the sorting algorithm used may be unstable when sorting equal values.
+
+Files not containing the required values for the given rules will error.

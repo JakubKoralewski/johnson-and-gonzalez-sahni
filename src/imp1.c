@@ -23,12 +23,28 @@ int imp1(Schedule* out_schedule, Input* in_input, const char* mode) {
 	COMPARE_FUNC cmp;
 	if (strcasecmp(mode, "erd") == 0) {
 		cmp = (COMPARE_FUNC) min_ready_time;
+		if(require_set(in_input, 1 << R)) {
+			fprintf(stderr, "ERD requires ready times!");
+			exit(1);
+		};
 	} else if (strcasecmp(mode, "edd") == 0) {
 		cmp = (COMPARE_FUNC) min_deadline;
+		if(require_set(in_input, 1 << D)) {
+			fprintf(stderr, "EDD requires deadlines!");
+			exit(1);
+		};
 	} else if (strcasecmp(mode, "spt") == 0) {
 		cmp = (COMPARE_FUNC) min_processing_time;
+		if(require_set(in_input, 1 << P)) {
+			fprintf(stderr, "SPT requires processing times!");
+			exit(1);
+		};
 	} else if (strcasecmp(mode, "wspt") == 0) {
 		cmp = (COMPARE_FUNC) min_weighted_processing_time;
+		if(require_set(in_input, 1 << P | 1 << W)) {
+			fprintf(stderr,"WSPT requires weights and processing times!");
+			exit(1);
+		};
 	} else {
 		fprintf(stderr, "Invalid mode %s\n", mode);
 		return ERROR_WITH_HELP;

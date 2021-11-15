@@ -38,6 +38,14 @@ typedef struct {
 	Job* buffer;
 } Input;
 
+int require_set(Input* input, unsigned char data) {
+	if((data & input->which_set) != data) {
+		return 1;
+	}
+
+	return 0;
+}
+
 typedef struct {
 	TIME start;
 	TIME end;
@@ -175,7 +183,7 @@ int read_input_from_file(const char* path, Input* input) {
 		while (*property != NO_PROPERTY) {
 			// We get property number, which corresponds to index to use for saving in prdw array
 			errno = 0;
-			TIME value = strtoul(parse_next, &endptr, 10);
+			TIME value = strtoull(parse_next, &endptr, 10);
 			if (errno) {
 				// Error in conversion
 				goto error;
@@ -200,7 +208,7 @@ int read_input_from_file(const char* path, Input* input) {
 				goto success;
 			}
 error:
-			fprintf(stderr, "Data file %s invalid on row (not including header) %zu\n", path, num_rows);
+			fprintf(stderr, "Data file %s invalid on line %zu\n", path, num_rows + 1);
 			goto error_cleanup;
 success:
 			job.prdw[*property] = value;
