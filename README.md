@@ -9,12 +9,12 @@ You should be able to build, debug, run tests etc.
 CMakeLists.txt projects are also supported in IntelliJ IDEs (e.g. CLion) and
 with the cmake CLI utility available for all platforms.
 
-The program expects to be run in the following way:
+The program expects to be run in the following ways:
 
-./imp1.exe edd path_to_file.txt
-./imp1.exe erd path_to_file.txt
-./imp1.exe spt path_to_file.txt
-./imp1.exe wspt path_to_file.txt
+- `./imp1.exe edd path_to_file.txt`
+- `./imp1.exe erd path_to_file.txt`
+- `./imp1.exe spt path_to_file.txt`
+- `./imp1.exe wspt path_to_file.txt`
 
 See help menu by running `./imp1.exe help` for more detailed instructions.
 
