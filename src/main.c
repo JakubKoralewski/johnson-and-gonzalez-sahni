@@ -43,15 +43,21 @@ int main(int argc, char** argv) {
 	int rv = 0;
 	Input input = {.buffer = NULL};
 	Schedule schedule = {.schedule = NULL};
+	if(argc >= 2) {
+		if(strcasecmp(argv[1], "help") == 0) {
+			print_help_menu();
+			return 0;
+		}
+	}
 	if(argc != 3) {
 		fprintf(stderr, "Invalid number of arguments. (%d) should be 2 (mode, path)", argc-1);
 		rv = 123;
-		goto error_with_help;
+		goto suggest_help;
 	}
 	char* path = argv[2];
 	if (!path) {
 		fprintf(stderr, "No path given.");
-		goto error_with_help;
+		goto suggest_help;
 	}
 	if ((rv = read_input_from_file(path, &input))) {
 		fprintf(stderr, "Couldn't read file %s\n", path);
@@ -65,14 +71,13 @@ int main(int argc, char** argv) {
 			goto cleanup;
 		case ERROR_WITH_HELP:
 			// Error that can be fixed by user learning about how to use this program
-			goto error_with_help;
+			goto suggest_help;
 		default:
 			// Any other error
 			goto cleanup;
 	}
-error_with_help:
-	printf("\nSee help below:\n");
-	print_help_menu();
+suggest_help:
+	printf("\nType \"help\" to open the help menu!\n");
 	// Also cleans up, no return
 
 cleanup:

@@ -16,7 +16,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <limits.h>
-
+#include <math.h>
 
 #define TIME unsigned long
 #define INDEX size_t
@@ -49,12 +49,45 @@ typedef struct {
 	ScheduledJob* schedule;
 } Schedule;
 
+
+int length_of_number(unsigned int number) {
+	if(number == 0) {
+		return 1;
+	} else {
+		return floor(log10(number)) + 1;
+	}
+}
+
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+#define J_TITLE "j"
+#define S_TITLE "s_j"
+#define C_TITLE "c_j"
+
 void schedule_print(Schedule* schedule) {
-	printf("Input:\n");
+	size_t largest_j = 0, largest_s = 0, largest_c = 0;
 	for (size_t i = 0; i < schedule->input->length; i++) {
 		Job* job = schedule->input->buffer + i;
 		ScheduledJob* schedule_data = schedule->schedule + i;
-		printf("Job #%zd: start: %lu; end: %lu\n", job->j, schedule_data->start, schedule_data->end);
+		largest_j = MAX(job->j, largest_j);
+		largest_s = MAX(schedule_data->start, largest_s);
+		largest_c = MAX(schedule_data->end, largest_c);
+	}
+	int num_j = MAX(length_of_number((unsigned int)largest_j), strlen(J_TITLE));
+	int num_s = MAX(length_of_number((unsigned int)largest_s), strlen(S_TITLE));
+	int num_c = MAX(length_of_number((unsigned int)largest_c), strlen(C_TITLE));
+
+	printf("%*s|%*s|%*s\n", num_j, "j", num_s, "s_j", num_c, "c_j");
+	for(int i =0; i< num_j+num_s+num_c+2;i++) {
+		printf("_");
+	}
+	printf("\n");
+
+	for (size_t i = 0; i < schedule->input->length; i++) {
+		Job* job = schedule->input->buffer + i;
+		ScheduledJob* schedule_data = schedule->schedule + i;
+		printf("%*zd|%*lu|%*lu\n", num_j, job->j, num_s, schedule_data->start, num_c, schedule_data->end);
 	}
 }
 // num digits of MAX_ULONG_LEN 18446744073709551615
@@ -135,7 +168,8 @@ int read_input_from_file(const char* path, Input* input) {
 		char* parse_next = line_buffer;
 		char* endptr;
 		Job job = {
-			.j = num_rows + 1 // including header + 1
+			.j = num_rows + 1, // including header + 1
+			.prdw = {0, 0, ULONG_MAX, 0}
 		};
 		unsigned char* property = order_prdw;
 		while (*property != NO_PROPERTY) {
@@ -196,18 +230,6 @@ error_cleanup:
 		fclose(file);
 	}
 	return 1;
-}
-
-//https://stackoverflow.com/questions/50559106/universal-array-element-swap-in-c
-void swap(void* v1, void* v2, size_t size) {
-	char* temp = (char*) alloca(size);
-	memmove(temp, v1, size);
-	memmove(v1, v2, size);
-	memmove(v2, temp, size);
-}
-
-size_t index_parent(size_t child) {
-	return (child - 1) / 2;
 }
 
 typedef int (* COMPARE_FUNC)(const void*, const void*);
