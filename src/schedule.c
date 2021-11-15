@@ -2,6 +2,10 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <string.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <math.h>
 
 #ifdef _WIN32
 #include <malloc.h>
@@ -13,10 +17,6 @@
 	#include <unistd.h>
 #endif
 
-#include <string.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <math.h>
 
 #define TIME unsigned long
 #define INDEX size_t
