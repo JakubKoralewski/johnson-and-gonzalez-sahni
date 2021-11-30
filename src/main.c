@@ -1,20 +1,15 @@
 ﻿// Jakub Koralewski 452490
 // ERT, EDD, SPT, WSPT rules (PRG1, PRG2, PRG3 and PRG4, 6 points)
-#include "imp1.c"
+#include "imp2.c"
 
 void print_help_menu() {
 	printf(
 		"\nThis is the help menu.\n"
-		"Implementation 1 program by Jakub Koralewski.\n"
+		"Implementation 2 program by Jakub Koralewski.\n"
 		"Example usages:\n"
-		"\t- \"imp1.exe erd ./input.txt\"\n"
-		"\t\t deadlines and weights are completely ignored for ERD\n"
-		"\t- \".\\imp1.exe EDD .\\input.txt\"\n"
-		"\t\t weights are completely ignored for EDD\n"
-		"\t- \"imp1.exe spt input.txt\"\n"
+		"\t- \"imp2.exe ls 3 ./input.txt\"\n"
+		"\t- \"imp2.exe spt 2 input.txt\"\n"
 		"\t\t deadlines and weights are completely ignored for SPT\n"
-		"\t- \"imp1.exe WsPT input.txt\"\n"
-		"\t\t deadlines are completely ignored for WSPT\n\n"
 		"Where the contents of the input file are a subset of the CSV format defined as follows:\n"
 		"\tThe first line is the header line. The allowed comma separated values are: 'p','r','d','w' which respectively correspond to:\n"
 		"\t\t- processing time\n"
@@ -47,18 +42,18 @@ int main(int argc, char** argv) {
 	int rv = 0;
 	Input input = {.buffer = NULL};
 	Schedule schedule = {.schedule = NULL};
-	if(argc >= 2) {
+	if(argc > 4) {
 		if(strcasecmp(argv[1], "help") == 0) {
 			print_help_menu();
 			return 0;
 		}
 	}
-	if(argc != 3) {
-		fprintf(stderr, "Invalid number of arguments. (%d) should be 2 (mode, path)", argc-1);
+	if(argc != 4) {
+		fprintf(stderr, "Invalid number of arguments (%d) should be 3 (number_of_machines, mode, path)", argc-1);
 		rv = 123;
 		goto suggest_help;
 	}
-	char* path = argv[2];
+	char* path = argv[3];
 	if (!path) {
 		fprintf(stderr, "No path given.");
 		goto suggest_help;
@@ -68,7 +63,13 @@ int main(int argc, char** argv) {
 		goto cleanup;
 	}
 	char* mode = argv[1];
-	switch((rv = imp1(&schedule, &input, mode))) {
+
+	MACHINE number_of_machines = strtoul(argv[2], NULL, 10);
+	if(number_of_machines == 0) {
+		fprintf(stderr, "Number of machines must not be 0\n");
+		goto cleanup;
+	}
+	switch((rv = imp2(number_of_machines, &schedule, &input, mode))) {
 		case 0:
 			// Success
 			schedule_print(&schedule);

@@ -17,13 +17,16 @@
 	#include <unistd.h>
 #endif
 
-
 #define TIME unsigned long
+#define TIME_MAX ULONG_MAX
+// 0 means not set, starts at 1 for ids
+#define MACHINE unsigned int
 #define INDEX size_t
 
 typedef struct {
 	INDEX j;
 	TIME prdw[4];
+	MACHINE m_id;
 } Job;
 
 #define P 0
@@ -67,27 +70,29 @@ int length_of_number(unsigned int number) {
 }
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 #define J_TITLE "j"
 #define S_TITLE "s_j"
 #define C_TITLE "c_j"
+#define M_TITLE "M"
 
 void schedule_print(Schedule* schedule) {
-	size_t largest_j = 0, largest_s = 0, largest_c = 0;
+	size_t largest_j = 0, largest_s = 0, largest_c = 0, largest_m = 0;
 	for (size_t i = 0; i < schedule->input->length; i++) {
 		Job* job = schedule->input->buffer + i;
 		ScheduledJob* schedule_data = schedule->schedule + i;
 		largest_j = MAX(job->j, largest_j);
 		largest_s = MAX(schedule_data->start, largest_s);
 		largest_c = MAX(schedule_data->end, largest_c);
+		largest_m = MAX(job->m_id, largest_m);
 	}
 	int num_j = MAX(length_of_number((unsigned int)largest_j), strlen(J_TITLE));
 	int num_s = MAX(length_of_number((unsigned int)largest_s), strlen(S_TITLE));
 	int num_c = MAX(length_of_number((unsigned int)largest_c), strlen(C_TITLE));
+	int num_m = MAX(length_of_number((unsigned int)largest_m), strlen(M_TITLE));
 
-	printf("%*s|%*s|%*s\n", num_j, "j", num_s, "s_j", num_c, "c_j");
-	for(int i =0; i< num_j+num_s+num_c+2;i++) {
+	printf("%*s|%*s|%*s|%*s\n", num_j, J_TITLE, num_s, S_TITLE, num_c, C_TITLE, num_m, M_TITLE);
+	for(int i =0; i< num_j+num_s+num_c+num_m+3;i++) {
 		printf("_");
 	}
 	printf("\n");
@@ -95,7 +100,7 @@ void schedule_print(Schedule* schedule) {
 	for (size_t i = 0; i < schedule->input->length; i++) {
 		Job* job = schedule->input->buffer + i;
 		ScheduledJob* schedule_data = schedule->schedule + i;
-		printf("%*zd|%*lu|%*lu\n", num_j, job->j, num_s, schedule_data->start, num_c, schedule_data->end);
+		printf("%*zd|%*lu|%*lu|%*u\n", num_j, job->j, num_s, schedule_data->start, num_c, schedule_data->end, num_m, job->m_id);
 	}
 }
 // num digits of MAX_ULONG_LEN 18446744073709551615
@@ -253,7 +258,7 @@ void schedule_new(Schedule* inout_schedule, Input* in_input) {
 		starting_time = job->prdw[R] > starting_time ? job->prdw[R] : starting_time;
 		ScheduledJob schedule_data = {
 			.start = starting_time,
-			.end = starting_time + job->prdw[P]
+			.end = starting_time + job->prdw[P],
 		};
 		starting_time = schedule_data.end;
 		inout_schedule->schedule[i] = schedule_data;

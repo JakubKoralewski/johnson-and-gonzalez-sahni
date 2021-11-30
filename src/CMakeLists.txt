@@ -1,4 +1,4 @@
-add_executable(imp1 main.c)
+add_executable(imp2 main.c)
 IF (NOT WIN32)
-    target_link_libraries(imp1 PRIVATE m)
+    target_link_libraries(imp2 PRIVATE m)
 ENDIF()

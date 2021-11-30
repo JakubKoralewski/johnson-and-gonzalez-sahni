@@ -1,4 +1,4 @@
-#include "../src/imp1.c"
+#include "../src/imp2.c"
 #include "assert.c"
 
 int main() {
