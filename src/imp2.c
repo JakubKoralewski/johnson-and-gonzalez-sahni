@@ -1,5 +1,5 @@
 ﻿// Jakub Koralewski 452490
-// ERT, EDD, SPT, WSPT rules (PRG1, PRG2, PRG3 and PRG4, 6 points)
+// LS, LPT
 #include "schedule.c"
 
 int nonincreasing_processing_time(Job* a, Job* b) {
@@ -64,7 +64,6 @@ int imp2(MACHINE num_machines, Schedule* out_schedule, Input* in_input, const ch
 		fprintf(stderr, "Invalid mode %s\n", mode);
 		return ERROR_WITH_HELP;
 	}
-//	schedule_new(out_schedule, in_input);
 	return rv;
 }
 

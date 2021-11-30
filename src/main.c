@@ -1,5 +1,5 @@
 ﻿// Jakub Koralewski 452490
-// ERT, EDD, SPT, WSPT rules (PRG1, PRG2, PRG3 and PRG4, 6 points)
+// LS LPT
 #include "imp2.c"
 
 void print_help_menu() {
@@ -8,8 +8,8 @@ void print_help_menu() {
 		"Implementation 2 program by Jakub Koralewski.\n"
 		"Example usages:\n"
 		"\t- \"imp2.exe ls 3 ./input.txt\"\n"
-		"\t- \"imp2.exe spt 2 input.txt\"\n"
-		"\t\t deadlines and weights are completely ignored for SPT\n"
+		"\t- \"imp2.exe lpt 2 input.txt\"\n"
+		"\t\t only processing times are used for LS and lpt \n"
 		"Where the contents of the input file are a subset of the CSV format defined as follows:\n"
 		"\tThe first line is the header line. The allowed comma separated values are: 'p','r','d','w' which respectively correspond to:\n"
 		"\t\t- processing time\n"
@@ -73,6 +73,15 @@ int main(int argc, char** argv) {
 		case 0:
 			// Success
 			schedule_print(&schedule);
+			TIME c_max = 0;
+			for (size_t i = schedule.input->length; i > schedule.input->length - number_of_machines;i--) {
+				ScheduledJob* job = &schedule.schedule[i];
+				if(job->start > c_max) {
+					c_max = job->end;
+				}
+			}
+			printf("\nc_max = %zu", c_max);
+
 			goto cleanup;
 		case ERROR_WITH_HELP:
 			// Error that can be fixed by user learning about how to use this program

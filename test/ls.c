@@ -7,25 +7,26 @@ int main() {
 	Job jobs[3] = {
 		{
 			.j = 2,
-			.prdw = {2, 4, 0, 0}
+			.prdw = {2, 0, 0, 0}
 		},
 		{
 			.j = 1,
-			.prdw = {1, 2, 0, 0},
+			.prdw = {1, 0, 0, 0},
 		},
 		{
 			.j = 3,
-			.prdw = {1, 5, 0, 0}
+			.prdw = {1, 0, 0, 0}
 		}
 	};
+	INDEX machine_assignments[] = {2,2,1};
 	input.buffer = jobs;
 	int len = sizeof(jobs) / sizeof(Job);
 	input.length = len;
-	input.which_set = 1 << P | 1 << R;
+	input.which_set = 1 << P;
 
 	Schedule schedule;
 
-	if ((rv = imp1(&schedule, &input, "erd"))) {
+	if ((rv = imp2(&schedule, &input, "erd"))) {
 		assert(rv == 0, "%s", "imp1() call should succeed");
 	}
 	for (int i = 0; i < len; i++) {
