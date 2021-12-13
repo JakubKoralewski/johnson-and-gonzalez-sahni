@@ -1,15 +1,15 @@
 ﻿// Jakub Koralewski 452490
-// LS LPT
-#include "imp2.c"
+// McNaughton and Modified SPT
+#include "imp3.c"
 
 void print_help_menu() {
 	printf(
 		"\nThis is the help menu.\n"
-		"Implementation 2 program by Jakub Koralewski.\n"
+		"Implementation 3 program by Jakub Koralewski.\n"
 		"Example usages:\n"
-		"\t- \"imp2.exe ls 3 ./input.txt\"\n"
-		"\t- \"imp2.exe lpt 2 input.txt\"\n"
-		"\t\t only processing times are used for LS and lpt \n"
+		"\t- \"imp3.exe mcn 3 ./input.txt\"\n"
+		"\t- \"imp3.exe spt 2 input.txt\"\n"
+		"\t\t only processing times are used for McNaughton's and modified spt \n"
 		"Where the contents of the input file are a subset of the CSV format defined as follows:\n"
 		"\tThe first line is the header line. The allowed comma separated values are: 'p','r','d','w' which respectively correspond to:\n"
 		"\t\t- processing time\n"
@@ -36,6 +36,10 @@ void print_help_menu() {
 		"\t\t2,3,3\n"
 		"\t\t1,4,1\n"
 	);
+}
+
+TIME get_end(ScheduledJob* job) {
+	return job->end;
 }
 
 int main(int argc, char** argv) {
@@ -69,18 +73,17 @@ int main(int argc, char** argv) {
 		fprintf(stderr, "Number of machines must not be 0\n");
 		goto cleanup;
 	}
-	switch((rv = imp2(number_of_machines, &schedule, &input, mode))) {
+	switch((rv = imp3(number_of_machines, &schedule, &input, mode))) {
 		case 0:
 			// Success
 			schedule_print(&schedule);
 			TIME c_max = 0;
-			for (size_t i = schedule.input->length; i > schedule.input->length - number_of_machines;i--) {
-				ScheduledJob* job = &schedule.schedule[i];
-				if(job->start > c_max) {
-					c_max = job->end;
-				}
+			if(max_time(schedule.schedule, sizeof(ScheduledJob), schedule.length, (GET_INT) get_end, &c_max)){
+				fprintf(stderr, "Invalid data");
+				rv = 1;
+				goto cleanup;
 			}
-			printf("\nc_max = %zu", c_max);
+			printf("\nc_max = %f", c_max);
 
 			goto cleanup;
 		case ERROR_WITH_HELP:

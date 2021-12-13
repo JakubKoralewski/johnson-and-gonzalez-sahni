@@ -11,10 +11,13 @@ with the cmake CLI utility available for all platforms.
 
 The program expects to be run in the following ways:
 
-- `./imp2.exe ls 2 path_to_file.txt`
-- `./imp2.exe lpt 1 path_to_file.txt`
+- `./imp3.exe mcnaughton 2 path_to_file.txt`
+- `./imp3.exe spt 1 path_to_file.txt`
 
-See help menu by running `./imp2.exe help` for more detailed instructions.
+See help menu by running `./imp3.exe help` for more detailed instructions.
 
 See the `test/inputs` directory for examples of input files.
 See the `test/*.c` files for examples used to test the rules.
+
+
+I seem to be getting double free / corruption error on Linux but not on Windows with the same code. Weird.

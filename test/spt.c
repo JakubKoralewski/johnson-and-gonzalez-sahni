@@ -21,7 +21,7 @@ int main() {
 	INDEX machine_assignments[] = {2,2,1};
 	input.buffer = jobs;
 	int len = sizeof(jobs) / sizeof(Job);
-	input.length = len;
+	input.capacity = len;
 	input.which_set = 1 << P;
 
 	Schedule schedule;

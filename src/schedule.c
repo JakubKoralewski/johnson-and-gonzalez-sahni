@@ -8,17 +8,20 @@
 #include <math.h>
 
 #ifdef _WIN32
-#include <malloc.h>
+	#include <malloc.h>
 	#define strcasecmp _stricmp
 	#define getcwd _getcwd
+//	#define _CRT_NONSTDC_NO_WARNINGS
 #else
 	#include <alloca.h>
 	#include <strings.h>
 	#include <unistd.h>
+	#include <float.h>
 #endif
 
-#define TIME unsigned long
-#define TIME_MAX ULONG_MAX
+// On preemptible schedules we can finish at a fraction
+#define TIME double
+//#define TIME_MAX DBL_MAX
 // 0 means not set, starts at 1 for ids
 #define MACHINE unsigned int
 #define INDEX size_t
@@ -26,7 +29,6 @@
 typedef struct {
 	INDEX j;
 	TIME prdw[4];
-	MACHINE m_id;
 } Job;
 
 #define P 0
@@ -42,7 +44,7 @@ typedef struct {
 } Input;
 
 int require_set(Input* input, unsigned char data) {
-	if((data & input->which_set) != data) {
+	if ((data & input->which_set) != data) {
 		return 1;
 	}
 
@@ -52,24 +54,29 @@ int require_set(Input* input, unsigned char data) {
 typedef struct {
 	TIME start;
 	TIME end;
+	INDEX job_j;
+	MACHINE m_id;
 } ScheduledJob;
 
 typedef struct {
 	Input* input;
-	// Length of the schedule is input->length
 	ScheduledJob* schedule;
+
+	// Length of the schedule is input->capacity in regular case, but in preemption the schedule can have more entries than jobs
+	size_t length;
 } Schedule;
 
 
 int length_of_number(unsigned int number) {
-	if(number == 0) {
+	if (number == 0) {
 		return 1;
 	} else {
-		return floor(log10(number)) + 1;
+		return (int) floor(log10(number)) + 1;
 	}
 }
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
+//#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 #define J_TITLE "j"
 #define S_TITLE "s_j"
@@ -78,29 +85,29 @@ int length_of_number(unsigned int number) {
 
 void schedule_print(Schedule* schedule) {
 	size_t largest_j = 0, largest_s = 0, largest_c = 0, largest_m = 0;
-	for (size_t i = 0; i < schedule->input->length; i++) {
-		Job* job = schedule->input->buffer + i;
+	for (size_t i = 0; i < schedule->length; i++) {
 		ScheduledJob* schedule_data = schedule->schedule + i;
-		largest_j = MAX(job->j, largest_j);
-		largest_s = MAX(schedule_data->start, largest_s);
-		largest_c = MAX(schedule_data->end, largest_c);
-		largest_m = MAX(job->m_id, largest_m);
+		largest_j = MAX(schedule_data->job_j, largest_j);
+		largest_s = MAX((size_t) schedule_data->start, largest_s);
+		largest_c = MAX((size_t) schedule_data->end, largest_c);
+		largest_m = MAX((size_t) schedule_data->m_id, largest_m);
 	}
-	int num_j = MAX(length_of_number((unsigned int)largest_j), strlen(J_TITLE));
-	int num_s = MAX(length_of_number((unsigned int)largest_s), strlen(S_TITLE));
-	int num_c = MAX(length_of_number((unsigned int)largest_c), strlen(C_TITLE));
-	int num_m = MAX(length_of_number((unsigned int)largest_m), strlen(M_TITLE));
+	int num_j = MAX((size_t) length_of_number((unsigned int) largest_j), strlen(J_TITLE));
+	int num_s = MAX((size_t) length_of_number((unsigned int) largest_s), strlen(S_TITLE));
+	int num_c = MAX((size_t) length_of_number((unsigned int) largest_c), strlen(C_TITLE));
+	int num_m = MAX((size_t) length_of_number((unsigned int) largest_m), strlen(M_TITLE));
 
 	printf("%*s|%*s|%*s|%*s\n", num_j, J_TITLE, num_s, S_TITLE, num_c, C_TITLE, num_m, M_TITLE);
-	for(int i =0; i< num_j+num_s+num_c+num_m+3;i++) {
+	for (int i = 0; i < num_j + num_s + num_c + num_m + 3; i++) {
 		printf("_");
 	}
 	printf("\n");
 
-	for (size_t i = 0; i < schedule->input->length; i++) {
-		Job* job = schedule->input->buffer + i;
-		ScheduledJob* schedule_data = schedule->schedule + i;
-		printf("%*zd|%*lu|%*lu|%*u\n", num_j, job->j, num_s, schedule_data->start, num_c, schedule_data->end, num_m, job->m_id);
+	for (size_t i = 0; i < schedule->length; i++) {
+		ScheduledJob* schedule_data = &schedule->schedule[i];
+		printf("%*zd|%*lu|%*lu|%*u\n", num_j, schedule_data->job_j, num_s, (unsigned long) ceil(schedule_data->start), num_c,
+		       (unsigned long) ceil(schedule_data->end),
+		       num_m, schedule_data->m_id);
 	}
 }
 // num digits of MAX_ULONG_LEN 18446744073709551615
@@ -188,7 +195,7 @@ int read_input_from_file(const char* path, Input* input) {
 		while (*property != NO_PROPERTY) {
 			// We get property number, which corresponds to index to use for saving in prdw array
 			errno = 0;
-			TIME value = strtoull(parse_next, &endptr, 10);
+			TIME value = (double) strtoull(parse_next, &endptr, 10);
 			if (errno) {
 				// Error in conversion
 				goto error;
@@ -209,7 +216,7 @@ int read_input_from_file(const char* path, Input* input) {
 				}
 
 				goto error;
-			}  else {
+			} else {
 				goto success;
 			}
 error:
@@ -253,7 +260,7 @@ void schedule_new(Schedule* inout_schedule, Input* in_input) {
 	inout_schedule->input = in_input;
 	inout_schedule->schedule = malloc(in_input->length * sizeof(Job));
 	TIME starting_time = 0;
-	for (int i = 0; i < in_input->length; i++) {
+	for (unsigned int i = 0; i < in_input->length; i++) {
 		Job* job = &in_input->buffer[i];
 		starting_time = job->prdw[R] > starting_time ? job->prdw[R] : starting_time;
 		ScheduledJob schedule_data = {
@@ -262,5 +269,37 @@ void schedule_new(Schedule* inout_schedule, Input* in_input) {
 		};
 		starting_time = schedule_data.end;
 		inout_schedule->schedule[i] = schedule_data;
+	}
+}
+
+typedef TIME (* GET_INT)(const void*);
+
+int max_time(void* list, size_t elem_size, size_t len, GET_INT get_int, TIME* out) {
+	TIME max = 0;
+	size_t i;
+	for (i = 0; i < len; i++) {
+		const void* elem = (void*) ((char*) list + i * elem_size);
+		max = MAX(max, get_int(elem));
+	}
+	if (i == 0) {
+		return -1;
+	} else {
+		*out = max;
+		return 0;
+	}
+}
+
+int sum_time(void* list, size_t elem_size, size_t len, GET_INT get_int, TIME* out) {
+	TIME sum = 0;
+	size_t i;
+	for (i = 0; i < len; i++) {
+		const void* elem = (void*) ((char*) list + i * elem_size);
+		sum += get_int(elem);
+	}
+	if (i == 0) {
+		return -1;
+	} else {
+		*out = sum;
+		return 0;
 	}
 }
