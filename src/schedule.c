@@ -76,7 +76,7 @@ int length_of_number(unsigned int number) {
 }
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
-//#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 #define J_TITLE "j"
 #define S_TITLE "s_j"

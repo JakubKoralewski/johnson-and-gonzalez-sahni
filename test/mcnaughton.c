@@ -78,7 +78,7 @@ int slide29_example1() {
 int slide30_example2() {
 	int rv;
 	Input input;
-	// Slide 29 lect no. 6
+	// Slide 30 lect no. 6
 	Job jobs[] = {
 		{
 			.j = 1,

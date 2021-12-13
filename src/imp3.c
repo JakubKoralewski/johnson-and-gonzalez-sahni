@@ -2,11 +2,7 @@
 // McNaughton and modified SPT
 #include "schedule.c"
 
-int nonincreasing_processing_time(Job* a, Job* b) {
-	return a->prdw[P] < b->prdw[P];
-}
-
-int min_processing_time(Job* a, Job* b) {
+int nondecreasing_processing_time(Job* a, Job* b) {
 	return a->prdw[P] > b->prdw[P];
 }
 
@@ -113,7 +109,41 @@ int mcnaughtons(const MACHINE num_machines, Input* inout_input, Schedule* inout_
 	}
 
 error_cleanup:
-	free(completion_time_per_machine); //FIXME: double free/corruption
+	free(completion_time_per_machine); //FIXME: double free/corruption (linux only???)
+	completion_time_per_machine = NULL;
+	return rv;
+}
+
+int modified_spt(const MACHINE num_machines, Input* inout_input, Schedule* inout_schedule) {
+	qsort(inout_input->buffer, inout_input->length, sizeof(Job), (COMPARE_FUNC) nondecreasing_processing_time);
+
+	int rv = 0;
+	inout_schedule->input = inout_input;
+	inout_schedule->length = 0;
+	size_t schedule_capacity = inout_input->length;
+	inout_schedule->schedule = malloc(schedule_capacity * sizeof(ScheduledJob));
+
+	// Add one to be able to operate in 1..=num_machines range and not worry about error-prone -1 conversions
+	TIME* completion_time_per_machine = calloc(num_machines + 1, sizeof(TIME));
+	while (inout_schedule->length < inout_input->length) {
+		unsigned int num_machines_or_less = MIN(num_machines, inout_input->length - inout_schedule->length);
+		for(unsigned int i = 0; i < num_machines_or_less; i++) {
+			Job* job = &inout_input->buffer[inout_schedule->length];
+			MACHINE machine_id = i + 1;
+			TIME start_time = completion_time_per_machine[machine_id];
+			ScheduledJob job_to_be_scheduled = {
+				.start = start_time,
+				.end = start_time + job->prdw[P],
+				.m_id = machine_id,
+				.job_j = job->j
+			};
+			TIME length_of_this_part_of_job = (job_to_be_scheduled.end - job_to_be_scheduled.start);
+			inout_schedule->schedule[inout_schedule->length++] = job_to_be_scheduled;
+			completion_time_per_machine[machine_id] += length_of_this_part_of_job;
+		}
+	}
+
+	free(completion_time_per_machine);
 	completion_time_per_machine = NULL;
 	return rv;
 }
@@ -127,14 +157,11 @@ int imp3(MACHINE num_machines, Schedule* out_schedule, Input* in_input, const ch
 		}
 		mcnaughtons(num_machines, in_input, out_schedule);
 	} else if (strcasecmp(mode, "spt") == 0) {
-		// todo
-		exit(1);
 		if (require_set(in_input, 1 << P)) {
 			fprintf(stderr, "Modified SPT requires processing times!");
 			exit(1);
 		}
-		qsort(in_input->buffer, in_input->length, sizeof(Job), (COMPARE_FUNC) nonincreasing_processing_time);
-//		list_scheduling(num_machines, in_input, out_schedule);
+		modified_spt(num_machines, in_input, out_schedule);
 	} else {
 		fprintf(stderr, "Invalid mode %s\n", mode);
 		return ERROR_WITH_HELP;
