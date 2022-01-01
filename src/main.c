@@ -1,14 +1,14 @@
 ﻿// Jakub Koralewski 452490
 // McNaughton and Modified SPT
-#include "imp3.c"
+#include "imp4.c"
 
 void print_help_menu() {
 	printf(
 		"\nThis is the help menu.\n"
-		"Implementation 3 program by Jakub Koralewski.\n"
+		"Implementation 4 program by Jakub Koralewski.\n"
 		"Example usages:\n"
-		"\t- \"imp3.exe mcn 3 ./input.txt\"\n"
-		"\t- \"imp3.exe spt 2 input.txt\"\n"
+		"\t- \"imp4.exe john 3 ./test/inputs/johnsons_all_in_1st_part.txt\"\n"
+		"\t- \"imp4.exe spt 2 input.txt\"\n"
 		"\t\t only processing times are used for McNaughton's and modified spt \n"
 		"Where the contents of the input file are a subset of the CSV format defined as follows:\n"
 		"\tThe first line is the header line. The allowed comma separated values are: 'p','r','d','w' which respectively correspond to:\n"
@@ -38,13 +38,9 @@ void print_help_menu() {
 	);
 }
 
-TIME get_end(ScheduledJob* job) {
-	return job->end;
-}
-
 int main(int argc, char** argv) {
 	int rv = 0;
-	Input input = {.buffer = NULL};
+	Input input = {.operations = NULL};
 	Schedule schedule = {.schedule = NULL};
 	if(argc > 4) {
 		if(strcasecmp(argv[1], "help") == 0) {
@@ -73,12 +69,15 @@ int main(int argc, char** argv) {
 		fprintf(stderr, "Number of machines must not be 0\n");
 		goto cleanup;
 	}
-	switch((rv = imp3(number_of_machines, &schedule, &input, mode))) {
+	switch((rv = imp4(number_of_machines, &schedule, &input, mode))) {
 		case 0:
 			// Success
 			schedule_print(&schedule);
 			TIME c_max = 0;
-			if(max_time(schedule.schedule, sizeof(ScheduledJob), schedule.length, (GET_INT) get_end, &c_max)){
+			if(min_max_time(
+				schedule.schedule, sizeof(ScheduledJob), schedule.length,
+				(GET_INT) get_end, (MIN_MAX_CMP_FUNC) max_time, &c_max)
+			){
 				fprintf(stderr, "Invalid data");
 				rv = 1;
 				goto cleanup;
@@ -98,9 +97,9 @@ suggest_help:
 	// Also cleans up, no return
 
 cleanup:
-	if(input.buffer != NULL) {
-		 free(input.buffer);
-		 input.buffer = NULL;
+	if(input.operations != NULL) {
+		 free(input.operations);
+		 input.operations = NULL;
 	}
 	// Null check required cause goto cleanup also before schedule malloc, relies on zero initialization w/ {0}
 	if(schedule.schedule != NULL) {

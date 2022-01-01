@@ -1,43 +1,43 @@
-#include "../src/imp3.c"
+#include "../src/imp4.c"
 #include "assert.c"
 
 int spt() {
 	int rv;
 	Input input;
 	// https://i.imgur.com/loiEDCb.png
-	Job jobs[] = { // processing times need to be distinct in case sorting is not stable for determinism
+	Operation jobs[] = { // processing times need to be distinct in case sorting is not stable for determinism
 		{
 			.j = 1,
-			.prdw = {5}, // 4, m 1
+			.prdwjm = {5}, // 4, m 1
 		},
 		{
 			.j = 2,
-			.prdw = {6} // 5, m 2
+			.prdwjm = {6} // 5, m 2
 		},
 		{
 			.j = 3,
-			.prdw = {3} // 2, m 2
+			.prdwjm = {3} // 2, m 2
 		},
 		{
 			.j = 4,
-			.prdw = {2} // 1, m 1
+			.prdwjm = {2} // 1, m 1
 		},
 		{
 			.j = 5,
-			.prdw = {4} // 3, m 3
+			.prdwjm = {4} // 3, m 3
 		},
 	};
 	INDEX machine_assignments[] = {1,2,3,1,2};
-	input.buffer = jobs;
-	int len = sizeof(jobs) / sizeof(Job);
+	input.operations = jobs;
+	int len = sizeof(jobs) / sizeof(Operation);
 	input.length = len;
 	input.which_set = 1 << P;
 	MACHINE num_machines = 3;
 
 	Schedule schedule;
 
-	if ((rv = imp3(num_machines, &schedule, &input, "spt"))) {
-		assert(rv == 0, "%s", "imp3() call should succeed");
+	if ((rv = imp4(num_machines, &schedule, &input, "spt"))) {
+		assert(rv == 0, "%s", "imp4() call should succeed");
 	}
 	for (unsigned int i = 0; i < schedule.length; i++) {
 		ScheduledJob* scheduled_job = &schedule.schedule[i];

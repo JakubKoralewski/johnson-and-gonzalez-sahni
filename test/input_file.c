@@ -1,4 +1,4 @@
-#include "../src/imp2.c"
+#include "../src/imp4.c"
 #include "assert.c"
 #include <string.h>
 
@@ -30,7 +30,7 @@ int make_file_path_relative_to_src_file(const char* relative_path_to_input, char
 
 void check_deadline_of_first_row_is_infinity(Input* input) {
 	// Assumes wrap-around arithmetic
-	assert_eq(input->buffer[0].prdw[D] + 1, 0, "%lu", "%d", "Inf is actually inf");
+	assert_eq(input->operations[0].prdwjm[D] + 1, 0, "%lu", "%d", "Inf is actually inf");
 }
 #define I(a) "inputs" SLASH a
 int main() {
@@ -82,7 +82,7 @@ int main() {
 			.path = I("empty.txt"),
 		},
 		{
-			.desc = "Longer than fit in buffer\n",
+			.desc = "Longer than fit in operations\n",
 			.path = I("longer_than_buffer.txt"),
 		},
 		{

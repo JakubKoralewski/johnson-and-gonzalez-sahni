@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <math.h>
+#include <float.h>
 
 #ifdef _WIN32
 	#include <malloc.h>
@@ -16,31 +17,32 @@
 	#include <alloca.h>
 	#include <strings.h>
 	#include <unistd.h>
-	#include <float.h>
+//	#include <float.h>
 #endif
 
 // On preemptible schedules we can finish at a fraction
 #define TIME double
-//#define TIME_MAX DBL_MAX
+#define TIME_MAX DBL_MAX
 // 0 means not set, starts at 1 for ids
 #define MACHINE unsigned int
 #define INDEX size_t
 
 typedef struct {
-	INDEX j;
-	TIME prdw[4];
-} Job;
+	TIME prdwjm[6];
+} Operation;
 
 #define P 0
 #define R 1
 #define D 2
 #define W 3
+#define J 4
+#define M 5
 
 // Collection of jobs, possibly unfeasible ordering
 typedef struct {
 	unsigned char which_set;
 	size_t length;
-	Job* buffer;
+	Operation* operations;
 } Input;
 
 int require_set(Input* input, unsigned char data) {
@@ -119,7 +121,7 @@ void schedule_print(Schedule* schedule) {
 //https://stackoverflow.com/questions/11793689/read-the-entire-contents-of-a-file-to-c-char-including-new-lines
 int read_input_from_file(const char* path, Input* input) {
 	size_t buffer_size = 8;
-	input->buffer = malloc(buffer_size * sizeof(Job));
+	input->operations = malloc(buffer_size * sizeof(Operation));
 
 	char line_buffer[LINE_BUFFER_SIZE];
 	size_t num_rows = 0;
@@ -132,7 +134,7 @@ int read_input_from_file(const char* path, Input* input) {
 		goto error_cleanup;
 	}
 	// e.g. {P, R, NP,NP} corresponds to header p,r; 5th value is sentinel to stop loop over this array
-	unsigned char order_prdw[5] = {NO_PROPERTY, NO_PROPERTY, NO_PROPERTY, NO_PROPERTY, NO_PROPERTY};
+	unsigned char order_prdwjm[7] = {NO_PROPERTY, NO_PROPERTY, NO_PROPERTY, NO_PROPERTY, NO_PROPERTY, NO_PROPERTY, NO_PROPERTY};
 	// Read header row
 	if (fgets(line_buffer, LINE_BUFFER_SIZE, file) != NULL) {
 		// Separate indices as we
@@ -141,16 +143,22 @@ int read_input_from_file(const char* path, Input* input) {
 		while (line_buffer[char_index] != '\0') {
 			switch (line_buffer[char_index]) {
 				case 'p':
-					order_prdw[property_index] = P;
+					order_prdwjm[property_index] = P;
 					break;
 				case 'r':
-					order_prdw[property_index] = R;
+					order_prdwjm[property_index] = R;
 					break;
 				case 'd':
-					order_prdw[property_index] = D;
+					order_prdwjm[property_index] = D;
 					break;
 				case 'w':
-					order_prdw[property_index] = W;
+					order_prdwjm[property_index] = W;
+					break;
+				case 'j':
+					order_prdwjm[property_index] = J;
+					break;
+				case 'm':
+					order_prdwjm[property_index] = M;
 					break;
 				case '\r':
 				case '\n':
@@ -168,7 +176,7 @@ int read_input_from_file(const char* path, Input* input) {
 		goto no_header_row;
 	}
 	for (int i = 0; i < 4; i++) {
-		unsigned char pos = order_prdw[i];
+		unsigned char pos = order_prdwjm[i];
 		if (pos != NO_PROPERTY) {
 			input->which_set |= 1 << pos;
 		} else {
@@ -179,7 +187,7 @@ int read_input_from_file(const char* path, Input* input) {
 	while (fgets(line_buffer, LINE_BUFFER_SIZE, file) != NULL) {
 		if (num_rows >= buffer_size) {
 			buffer_size *= 2;
-			if (!realloc(input->buffer, buffer_size)) {
+			if (!realloc(input->operations, buffer_size)) {
 				perror("OOM");
 				goto error_cleanup;
 			}
@@ -187,13 +195,12 @@ int read_input_from_file(const char* path, Input* input) {
 
 		char* parse_next = line_buffer;
 		char* endptr;
-		Job job = {
-			.j = num_rows + 1, // including header + 1
-			.prdw = {0, 0, ULONG_MAX, 0}
+		Operation job = {
+			.prdwjm = {0, 0, ULONG_MAX, 0, num_rows + 1, 0}
 		};
-		unsigned char* property = order_prdw;
+		unsigned char* property = order_prdwjm;
 		while (*property != NO_PROPERTY) {
-			// We get property number, which corresponds to index to use for saving in prdw array
+			// We get property number, which corresponds to index to use for saving in prdwjm array
 			errno = 0;
 			TIME value = (double) strtoull(parse_next, &endptr, 10);
 			if (errno) {
@@ -223,12 +230,12 @@ error:
 			fprintf(stderr, "Data file %s invalid on line %zu\n", path, num_rows + 1);
 			goto error_cleanup;
 success:
-			job.prdw[*property] = value;
+			job.prdwjm[*property] = value;
 			parse_next = endptr + 1; // + 1 to get past the comma
 			property++;
 		}
 
-		*(input->buffer + num_rows) = job;
+		*(input->operations + num_rows) = job;
 		num_rows++;
 	}
 	if (num_rows == 0) {
@@ -244,8 +251,8 @@ no_header_row:
 	// also needs error cleanup
 
 error_cleanup:
-	free(input->buffer);
-	input->buffer = NULL;
+	free(input->operations);
+	input->operations = NULL;
 	if (file != NULL) {
 		fclose(file);
 	}
@@ -258,14 +265,14 @@ typedef int (* COMPARE_FUNC)(const void*, const void*);
 
 void schedule_new(Schedule* inout_schedule, Input* in_input) {
 	inout_schedule->input = in_input;
-	inout_schedule->schedule = malloc(in_input->length * sizeof(Job));
+	inout_schedule->schedule = malloc(in_input->length * sizeof(Operation));
 	TIME starting_time = 0;
 	for (unsigned int i = 0; i < in_input->length; i++) {
-		Job* job = &in_input->buffer[i];
-		starting_time = job->prdw[R] > starting_time ? job->prdw[R] : starting_time;
+		Operation* job = &in_input->operations[i];
+		starting_time = job->prdwjm[R] > starting_time ? job->prdwjm[R] : starting_time;
 		ScheduledJob schedule_data = {
 			.start = starting_time,
-			.end = starting_time + job->prdw[P],
+			.end = starting_time + job->prdwjm[P],
 		};
 		starting_time = schedule_data.end;
 		inout_schedule->schedule[i] = schedule_data;
@@ -273,20 +280,38 @@ void schedule_new(Schedule* inout_schedule, Input* in_input) {
 }
 
 typedef TIME (* GET_INT)(const void*);
+typedef void (* MIN_MAX_CMP_FUNC)(void* prev, const void* cur);
 
-int max_time(void* list, size_t elem_size, size_t len, GET_INT get_int, TIME* out) {
-	TIME max = 0;
+int min_max_time(
+	const void* list, size_t elem_size, size_t len,
+	void* init_elem, MIN_MAX_CMP_FUNC min_max_func
+) {
 	size_t i;
 	for (i = 0; i < len; i++) {
 		const void* elem = (void*) ((char*) list + i * elem_size);
-		max = MAX(max, get_int(elem));
+		min_max_func((void*)(char*)init_elem, elem);
 	}
 	if (i == 0) {
 		return -1;
-	} else {
-		*out = max;
-		return 0;
 	}
+	return 0;
+}
+
+//
+//TIME min_time(TIME prev, TIME cur) {
+//	if(cur < prev) {
+//		return cur;
+//	} else {
+//		return prev;
+//	}
+//}
+
+TIME get_end(ScheduledJob* job) {
+	return job->end;
+}
+
+TIME get_processing_time(Operation* job) {
+	return job->prdwjm[P];
 }
 
 int sum_time(void* list, size_t elem_size, size_t len, GET_INT get_int, TIME* out) {
