@@ -176,7 +176,7 @@ void min_op(MinOp* prev, const Operation* cur) {
 }
 
 /// Num machines is not required as johnsons only works for 2 machines
-int johnsons(Input* inout_input, Schedule* inout_schedule) {
+int johnsons(Input* inout_input, Schedule* inout_schedule, INDEX* inout_final_sequence) {
 	int rv = 0;
 	// List operation processing times p1j and p2j in two columns
 	inout_schedule->input = inout_input;
@@ -187,7 +187,7 @@ int johnsons(Input* inout_input, Schedule* inout_schedule) {
 	size_t num_jobs = inout_input->length / 2;
 	// + 1, in case of odd number of jobs one of the indices in the middle will be 0
 	size_t final_sequence_len = num_jobs + 1;
-	INDEX* final_sequence = malloc(final_sequence_len * sizeof(INDEX));
+//	INDEX* final_sequence = malloc(final_sequence_len * sizeof(INDEX));
 	size_t cursor_end_of_1st_part = 0;
 	size_t cursor_end_of_2nd_part = final_sequence_len / 2;
 
@@ -225,7 +225,7 @@ int johnsons(Input* inout_input, Schedule* inout_schedule) {
 			fprintf(stderr, "Corrupted state");
 			exit(1);
 		}
-		final_sequence[index_to_put_index_in] = (INDEX) min.operation.prdwjm[J];
+		inout_final_sequence[index_to_put_index_in] = (INDEX) min.operation.prdwjm[J];
 
 		// 4. Delete both operation processing times from the columns
 		min.map_index_to_whether_inserted[(INDEX)min.operation.prdwjm[J] - 1] = 1;
@@ -235,18 +235,16 @@ int johnsons(Input* inout_input, Schedule* inout_schedule) {
 
 	// We get rid of the possible 0 in the middle in case of odd number of jobs
 	memmove(
-		final_sequence + cursor_end_of_1st_part,
-		final_sequence + (final_sequence_len / 2),
+		inout_final_sequence + cursor_end_of_1st_part,
+		inout_final_sequence + (final_sequence_len / 2),
 		cursor_end_of_2nd_part - (final_sequence_len / 2)
 	);
 	final_sequence_len--;
-	printf("Final sequence:\n");
 	for(int i = 0; i < final_sequence_len; i++) {
-		printf("%d, ", final_sequence[i]);
+		// we duplicate the same for the other machine
+		inout_final_sequence[i + final_sequence_len] = inout_final_sequence[i];
 	}
 	printf("\n");
-
-	free(final_sequence);
 
 	return 0;
 }
@@ -262,7 +260,7 @@ int nondecreasing_index_then_nondecreasing_machine(const Operation* a, const Ope
 }
 
 /// Also works for 2 machines only
-int gonzalez_sahni(Input* inout_input, Schedule* inout_schedule) {
+int gonzalez_sahni(Input* inout_input, Schedule* inout_schedule, INDEX* inout_final_sequence) {
 	qsort(
 		inout_input->operations, inout_input->length, sizeof(Operation),
 		(COMPARE_FUNC) nondecreasing_index_then_nondecreasing_machine
@@ -308,7 +306,8 @@ int gonzalez_sahni(Input* inout_input, Schedule* inout_schedule) {
 
 	// + 1, in case of odd number of jobs one of the indices in the middle will be 0
 	size_t num_operations = inout_input->length;
-	INDEX* final_sequence_of_1st_m_1st_part = malloc(num_operations * sizeof(INDEX));
+//	INDEX* final_sequence_of_1st_m_1st_part = malloc(num_operations * sizeof(INDEX));
+	INDEX* final_sequence_of_1st_m_1st_part = inout_final_sequence;
 	INDEX* cursor_1st_m_1st_part = final_sequence_of_1st_m_1st_part;
 	INDEX* cursor_1st_m_2nd_part;
 
@@ -367,23 +366,18 @@ int gonzalez_sahni(Input* inout_input, Schedule* inout_schedule) {
 	} else {
 		*(cursor_2nd_m_2nd_part++) = r; // m_2 = (...,r)
 	}
-	INDEX* cursor = final_sequence_of_1st_m_1st_part;
-	for(int m = 0; m < 2; m++) {
-		printf("Sequence of jobs on machine %d\n", m + 1);
-		for(int i = 0; i < num_jobs; i++) {
-			INDEX j = *(cursor++);
-			printf("%d, ", j);
-		}
-		printf("\n");
-	}
 
 	free(map_index_to_whether_job_belongs_to_first_set);
-	free(final_sequence_of_1st_m_1st_part);
-
 	return 0;
 }
 
-int jacksons(const MACHINE num_machines, Input* inout_input, Schedule* inout_schedule) {
+// Jackson's
+
+int jacksons(Input* inout_input, Schedule* inout_schedule, INDEX* inout_final_sequence) {
+	johnsons(inout_input, inout_schedule, inout_final_sequence);
+	fprintf(stderr, "I don't understand how a route fits into this");
+
+	exit(1);
 }
 
 int begins_with(const char* to_check, const char* should_be) {
@@ -396,6 +390,9 @@ int imp4(MACHINE num_machines, Schedule* out_schedule, Input* in_input, const ch
 		fprintf(stderr, "All algorithms require processing times!");
 		exit(1);
 	}
+	size_t num_operations = in_input->length;
+	// first half is for first machine, second half for 2nd machine
+	INDEX* final_sequence = malloc(num_operations * sizeof(INDEX));
 	if (begins_with(mode, "john")) {
 		if(num_machines == 3) {
 			fprintf(stderr, "TODO: slide 14 lecture 10, special case for F3");
@@ -405,15 +402,30 @@ int imp4(MACHINE num_machines, Schedule* out_schedule, Input* in_input, const ch
 			exit(1);
 		}
 
-		johnsons(in_input, out_schedule);
+		johnsons(in_input, out_schedule, final_sequence);
 	} else if (begins_with(mode, "gon") || begins_with(mode, "br")){
-		gonzalez_sahni(in_input, out_schedule);
+		gonzalez_sahni(in_input, out_schedule, final_sequence);
 	} else if (begins_with(mode, "jack")) {
-		jacksons(num_machines, in_input, out_schedule);
+		jacksons(in_input, out_schedule, final_sequence);
 	} else {
 		fprintf(stderr, "Invalid mode %s\n", mode);
-		return ERROR_WITH_HELP;
+		rv = ERROR_WITH_HELP;
+		goto cleanup;
 	}
+
+	INDEX* cursor = final_sequence;
+	size_t num_jobs = num_operations / 2;
+	for(int m = 0; m < 2; m++) {
+		printf("Sequence of jobs on machine %d\n", m + 1);
+		for(int i = 0; i < num_jobs; i++) {
+			INDEX j = *(cursor++);
+			printf("%d, ", j);
+		}
+		printf("\n");
+	}
+
+cleanup:
+	free(final_sequence);
 	return rv;
 }
 
