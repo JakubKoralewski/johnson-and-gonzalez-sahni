@@ -247,9 +247,140 @@ int johnsons(Input* inout_input, Schedule* inout_schedule) {
 	printf("\n");
 
 	free(final_sequence);
+
+	return 0;
 }
 
-int gonzalez_sahni(const MACHINE num_machines, Input* inout_input, Schedule* inout_schedule) {
+// Gonzalez-Sahni (Brucker) algorithm
+
+int nondecreasing_index_then_nondecreasing_machine(const Operation* a, const Operation* b) {
+	if(a->prdwjm[J] > b->prdwjm[J]) return 1;
+	if(a->prdwjm[J] == b->prdwjm[J]) {
+		return a->prdwjm[M] > b->prdwjm[M];
+	}
+	return 0;
+}
+
+/// Also works for 2 machines only
+int gonzalez_sahni(Input* inout_input, Schedule* inout_schedule) {
+	qsort(
+		inout_input->operations, inout_input->length, sizeof(Operation),
+		(COMPARE_FUNC) nondecreasing_index_then_nondecreasing_machine
+	);
+
+	// List operation processing times p1j and p2j in two columns
+	inout_schedule->input = inout_input;
+	inout_schedule->length = 0;
+	size_t schedule_capacity = inout_input->length;
+	inout_schedule->schedule = malloc(schedule_capacity * sizeof(ScheduledJob));
+
+	size_t num_jobs = inout_input->length / 2;
+
+	int* map_index_to_whether_job_belongs_to_first_set = calloc(num_jobs, sizeof(int));
+	size_t num_in_1st_set = 0;
+	TIME k = 0;
+	MACHINE machine_with_k = 0;
+	INDEX r = -1;
+
+	for(int i =0; i<num_jobs; i += 2) {
+		Operation* op_1st_machine = &inout_input->operations[i];
+		Operation* op_2nd_machine = &inout_input->operations[i + 1];
+		if(op_1st_machine->prdwjm[M] != 1 || op_2nd_machine->prdwjm[M] != 2) {
+			fprintf(stderr, "Corrupted state: sorting didn't work?");
+			exit(1);
+		}
+		if(op_1st_machine->prdwjm[P] > k) {
+			k = op_1st_machine->prdwjm[P];
+			machine_with_k = 1;
+			r = (INDEX)op_1st_machine->prdwjm[J];
+		}
+		if(op_2nd_machine->prdwjm[P] > k) {
+			k = op_2nd_machine->prdwjm[P];
+			machine_with_k = 2;
+			r = (INDEX)op_2nd_machine->prdwjm[J];
+		}
+		if(op_1st_machine->prdwjm[P] >= op_2nd_machine->prdwjm[P]) {
+			map_index_to_whether_job_belongs_to_first_set[i] = 1;
+			num_in_1st_set++;
+		}
+	}
+	size_t num_in_2nd_set = num_jobs - num_in_1st_set;
+
+	// + 1, in case of odd number of jobs one of the indices in the middle will be 0
+	size_t num_operations = inout_input->length;
+	INDEX* final_sequence_of_1st_m_1st_part = malloc(num_operations * sizeof(INDEX));
+	INDEX* cursor_1st_m_1st_part = final_sequence_of_1st_m_1st_part;
+	INDEX* cursor_1st_m_2nd_part;
+
+	INDEX* final_sequence_of_2nd_m_1st_part = final_sequence_of_1st_m_1st_part + num_operations / 2;
+	INDEX* cursor_2nd_m_1st_part = final_sequence_of_2nd_m_1st_part;
+	INDEX* cursor_2nd_m_2nd_part;
+
+	if(machine_with_k == 1) {
+		size_t num_in_1st_set_without_r = num_in_1st_set == 0 ? 0 : num_in_1st_set - 1;
+		// m_1=(...,J^2,...)
+		cursor_1st_m_2nd_part = cursor_1st_m_1st_part + num_in_1st_set_without_r;
+		// m_2=(r,...
+		*(cursor_2nd_m_1st_part++) = r;
+		// m_2=(...,J^2)
+		cursor_2nd_m_2nd_part = cursor_2nd_m_1st_part + num_in_1st_set_without_r;
+	} else if (machine_with_k == 2) {
+		size_t num_in_2nd_set_without_r = num_in_2nd_set == 0 ? 0 : num_in_2nd_set - 1;
+		// m_1=(r,...
+		*(cursor_1st_m_1st_part++) = r;
+		// m_1=(...,J^1)
+		cursor_1st_m_2nd_part = cursor_1st_m_1st_part + num_in_2nd_set_without_r;
+		// m_2=(...,J^1,...)
+		cursor_2nd_m_2nd_part = cursor_2nd_m_1st_part + num_in_2nd_set_without_r;
+	} else {
+		fprintf(stderr, "Corrupted state: 2 machines only!");
+		exit(1);
+	}
+
+	for(int i = 0; i < num_jobs; i++) {
+		size_t job_index = i + 1;
+		if (job_index == r) {
+			continue;
+		}
+		// can be assumed operations are sorted wrt index first, then machines
+		int is_in_first_set = map_index_to_whether_job_belongs_to_first_set[i];
+		if (machine_with_k == 1) {
+			if (is_in_first_set) {
+				*(cursor_1st_m_1st_part++) = job_index; // J^1 - {r}
+				*(cursor_2nd_m_1st_part++) = job_index; // J^1 - {r}
+			} else {
+				*(cursor_1st_m_2nd_part++) = job_index; // J^2
+				*(cursor_2nd_m_2nd_part++) = job_index; // J^2
+			}
+		} else {
+			if (is_in_first_set) {
+				*(cursor_1st_m_2nd_part++) = job_index; // J^1
+				*(cursor_2nd_m_2nd_part++) = job_index; // J^1
+			} else {
+				*(cursor_1st_m_1st_part++) = job_index; // J^2 - {r}
+				*(cursor_2nd_m_1st_part++) = job_index; // J^2 - {r}
+			}
+		}
+	}
+	if(machine_with_k == 1) {
+		*(cursor_1st_m_2nd_part++) = r; // m_1 = (...,r)
+	} else {
+		*(cursor_2nd_m_2nd_part++) = r; // m_2 = (...,r)
+	}
+	INDEX* cursor = final_sequence_of_1st_m_1st_part;
+	for(int m = 0; m < 2; m++) {
+		printf("Sequence of jobs on machine %d\n", m + 1);
+		for(int i = 0; i < num_jobs; i++) {
+			INDEX j = *(cursor++);
+			printf("%d, ", j);
+		}
+		printf("\n");
+	}
+
+	free(map_index_to_whether_job_belongs_to_first_set);
+	free(final_sequence_of_1st_m_1st_part);
+
+	return 0;
 }
 
 int jacksons(const MACHINE num_machines, Input* inout_input, Schedule* inout_schedule) {
@@ -276,7 +407,7 @@ int imp4(MACHINE num_machines, Schedule* out_schedule, Input* in_input, const ch
 
 		johnsons(in_input, out_schedule);
 	} else if (begins_with(mode, "gon") || begins_with(mode, "br")){
-		gonzalez_sahni(num_machines, in_input, out_schedule);
+		gonzalez_sahni(in_input, out_schedule);
 	} else if (begins_with(mode, "jack")) {
 		jacksons(num_machines, in_input, out_schedule);
 	} else {
