@@ -1,5 +1,5 @@
 ﻿// Jakub Koralewski 452490
-// McNaughton and modified SPT
+// Johnson, Gonzales-Sahni
 #include "schedule.c"
 
 // Johnson's algorithm

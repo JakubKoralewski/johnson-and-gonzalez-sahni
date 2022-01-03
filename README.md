@@ -11,8 +11,8 @@ with the cmake CLI utility available for all platforms.
 
 The program expects to be run in the following ways:
 
-- `./imp4.exe mcnaughton 2 path_to_file.txt`
-- `./imp4.exe spt 1 path_to_file.txt`
+- `./imp4.exe john 2 path_to_file.txt`
+- `./imp4.exe gon 2 path_to_file.txt`
 
 See help menu by running `./imp4.exe help` for more detailed instructions.
 

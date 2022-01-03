@@ -1,5 +1,5 @@
 ﻿// Jakub Koralewski 452490
-// McNaughton and Modified SPT
+// Johnson, Gonzales-Sahni
 #include "imp4.c"
 
 void print_help_menu() {
@@ -7,15 +7,18 @@ void print_help_menu() {
 		"\nThis is the help menu.\n"
 		"Implementation 4 program by Jakub Koralewski.\n"
 		"Example usages:\n"
-		"\t- \"imp4.exe john 3 ./test/inputs/johnsons_all_in_1st_part.txt\"\n"
-		"\t- \"imp4.exe spt 2 input.txt\"\n"
+		"\t- \"imp4.exe john 2 ./test/inputs/johnsons_all_in_1st_part.txt\"\n"
+		"\t- \"imp4.exe gon 2 input.txt\"\n"
 		"\t\t only processing times are used for McNaughton's and modified spt \n"
+		"Only acceptable number of machines is 2 for these algorithms.\n"
 		"Where the contents of the input file are a subset of the CSV format defined as follows:\n"
-		"\tThe first line is the header line. The allowed comma separated values are: 'p','r','d','w' which respectively correspond to:\n"
+		"\tThe first line is the header line. The allowed comma separated values are: 'p','r','d','w','j','m' which respectively correspond to:\n"
 		"\t\t- processing time\n"
 		"\t\t- ready time\n"
 		"\t\t- deadline /due-date\n"
 		"\t\t- weight\n"
+		"\t\t- index of the operation\n"
+		"\t\t- machine the operation should be executed on\n"
 		"\tThe values in the header can be put in any order, but remember to order the values below in same order.\n"
 		"\tOn each line put the same number of values as in the header. separated by commas. Each column corresponding to the defined header.\n"
 		"\tOnly non-negative integers are allowed (inc. weight). With the following exceptions:\n"
