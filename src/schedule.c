@@ -297,6 +297,12 @@ int min_max_time(
 	return 0;
 }
 
+void max_time(TIME* prev, const TIME* cur) {
+	if(cur < prev) {
+		*prev = *cur;
+	}
+}
+
 //
 //TIME min_time(TIME prev, TIME cur) {
 //	if(cur < prev) {

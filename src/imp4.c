@@ -2,154 +2,6 @@
 // McNaughton and modified SPT
 #include "schedule.c"
 
-int nondecreasing_processing_time(Operation* a, Operation* b) {
-	return a->prdwjm[P] > b->prdwjm[P];
-}
-
-int first_available_machine(const MACHINE num_machines, const TIME* completion_time_per_machine, const TIME c_max_star,
-			    MACHINE* out_machine_index) {
-	for (MACHINE j = 1; j <= num_machines; j++) {
-		if (completion_time_per_machine[j] < c_max_star) {
-			*out_machine_index = j;
-			return 0;
-		}
-	}
-
-	return 1;
-}
-
-int schedule_job(const MACHINE num_machines, const Operation* job, const TIME* completion_time_per_machine, double c_max_star,
-	     int* out_is_preempted, MACHINE* out_machine_id, ScheduledJob* out_scheduled_job) {
-	MACHINE machine_id;
-	if (first_available_machine(num_machines, completion_time_per_machine, c_max_star, &machine_id)) {
-		fprintf(stderr, "No available machine");
-		return 1;
-	}
-	*out_machine_id = machine_id;
-
-	// Create job
-	TIME starting_time = completion_time_per_machine[machine_id];
-	starting_time = job->prdwjm[R] > starting_time ? job->prdwjm[R] : starting_time;
-	TIME end_time = starting_time + job->prdwjm[P];
-	if ((double) end_time > c_max_star) {
-		end_time = c_max_star;
-		*out_is_preempted = 1;
-	}
-	*out_scheduled_job = (ScheduledJob) {
-		.start = starting_time,
-		.end = end_time,
-		.job_j = (INDEX) job->prdwjm[J],
-		.m_id = machine_id // single job can be on multiple machines in a preemptible schedule
-	};
-	return 0;
-}
-
-void max_time(TIME* prev, const TIME* cur) {
-	if(cur < prev) {
-		*prev = *cur;
-	}
-}
-
-int mcnaughtons(const MACHINE num_machines, Input* inout_input, Schedule* inout_schedule) {
-	int rv = 0;
-	inout_schedule->input = inout_input;
-	inout_schedule->length = 0;
-	size_t schedule_capacity = inout_input->length;
-	inout_schedule->schedule = malloc(schedule_capacity * sizeof(ScheduledJob));
-
-	TIME c_max_star_int;
-	if (min_max_time(inout_input->operations, sizeof(Operation), inout_input->length, &c_max_star_int,
-		     (MIN_MAX_CMP_FUNC) max_time)) {
-		fprintf(stderr, "Invalid data");
-		return 1;
-	}
-	double c_max_star = (double) c_max_star_int;
-
-	TIME processing_sum;
-	if (sum_time(inout_input->operations, sizeof(Operation), inout_input->length, (GET_INT) get_processing_time,
-		     &processing_sum)) {
-		fprintf(stderr, "Invalid data");
-		return 1;
-	}
-	c_max_star = MAX(c_max_star, (double) processing_sum / (double) num_machines);
-
-	unsigned int num_full_jobs_scheduled = 0;
-
-	// Add one to be able to operate in 1..=num_machines range and not worry about error-prone -1 conversions
-	TIME* completion_time_per_machine = calloc(num_machines + 1, sizeof(TIME));
-	while (num_full_jobs_scheduled < inout_input->length) {
-		Operation* job = &inout_input->operations[num_full_jobs_scheduled];
-
-		int is_preempted = 0;
-		MACHINE machine_id;
-		ScheduledJob job_to_be_scheduled;
-		if (schedule_job(num_machines, job, completion_time_per_machine,
-				 c_max_star, &is_preempted, &machine_id, &job_to_be_scheduled)) {
-			rv = 1;
-			goto error_cleanup;
-		}
-		TIME length_of_this_part_of_job = (job_to_be_scheduled.end - job_to_be_scheduled.start);
-
-		if (is_preempted) {
-			if (inout_input->length + 1 > schedule_capacity) {
-				schedule_capacity *= 2;
-				if (!realloc(inout_schedule->schedule, schedule_capacity * sizeof(ScheduledJob))) {
-					 perror("OOM");
-					 rv = 1;
-					 goto error_cleanup;
-				}
-			}
-			job->prdwjm[P] -= length_of_this_part_of_job; // Now we want to schedule again what we cut off
-		} else {
-			// We move on to the next job
-			num_full_jobs_scheduled++;
-		}
-		inout_schedule->schedule[inout_schedule->length++] = job_to_be_scheduled;
-
-		completion_time_per_machine[machine_id] += length_of_this_part_of_job;
-	}
-
-error_cleanup:
-	free(completion_time_per_machine); //FIXME: double free/corruption (linux only???)
-	completion_time_per_machine = NULL;
-	return rv;
-}
-
-int modified_spt(const MACHINE num_machines, Input* inout_input, Schedule* inout_schedule) {
-	qsort(inout_input->operations, inout_input->length, sizeof(Operation), (COMPARE_FUNC) nondecreasing_processing_time);
-
-	int rv = 0;
-	inout_schedule->input = inout_input;
-	inout_schedule->length = 0;
-	size_t schedule_capacity = inout_input->length;
-	inout_schedule->schedule = malloc(schedule_capacity * sizeof(ScheduledJob));
-
-	// Add one to be able to operate in 1..=num_machines range and not worry about error-prone -1 conversions
-	TIME* completion_time_per_machine = calloc(num_machines + 1, sizeof(TIME));
-	while (inout_schedule->length < inout_input->length) {
-		unsigned int num_machines_or_less = MIN(num_machines, inout_input->length - inout_schedule->length);
-		for(unsigned int i = 0; i < num_machines_or_less; i++) {
-			Operation* job = &inout_input->operations[inout_schedule->length];
-			MACHINE machine_id = i + 1;
-			TIME start_time = completion_time_per_machine[machine_id];
-			ScheduledJob job_to_be_scheduled = {
-				.start = start_time,
-				.end = start_time + job->prdwjm[P],
-				.m_id = machine_id,
-				.job_j = (INDEX) job->prdwjm[J]
-			};
-			TIME length_of_this_part_of_job = (job_to_be_scheduled.end - job_to_be_scheduled.start);
-			inout_schedule->schedule[inout_schedule->length++] = job_to_be_scheduled;
-			completion_time_per_machine[machine_id] += length_of_this_part_of_job;
-		}
-	}
-
-	free(completion_time_per_machine);
-	completion_time_per_machine = NULL;
-	return rv;
-}
-
-
 // Johnson's algorithm
 
 typedef struct {
@@ -177,7 +29,6 @@ void min_op(MinOp* prev, const Operation* cur) {
 
 /// Num machines is not required as johnsons only works for 2 machines
 int johnsons(Input* inout_input, Schedule* inout_schedule, INDEX* inout_final_sequence) {
-	int rv = 0;
 	// List operation processing times p1j and p2j in two columns
 	inout_schedule->input = inout_input;
 	inout_schedule->length = 0;
@@ -187,7 +38,6 @@ int johnsons(Input* inout_input, Schedule* inout_schedule, INDEX* inout_final_se
 	size_t num_jobs = inout_input->length / 2;
 	// + 1, in case of odd number of jobs one of the indices in the middle will be 0
 	size_t final_sequence_len = num_jobs + 1;
-//	INDEX* final_sequence = malloc(final_sequence_len * sizeof(INDEX));
 	size_t cursor_end_of_1st_part = 0;
 	size_t cursor_end_of_2nd_part = final_sequence_len / 2;
 
@@ -306,7 +156,6 @@ int gonzalez_sahni(Input* inout_input, Schedule* inout_schedule, INDEX* inout_fi
 
 	// + 1, in case of odd number of jobs one of the indices in the middle will be 0
 	size_t num_operations = inout_input->length;
-//	INDEX* final_sequence_of_1st_m_1st_part = malloc(num_operations * sizeof(INDEX));
 	INDEX* final_sequence_of_1st_m_1st_part = inout_final_sequence;
 	INDEX* cursor_1st_m_1st_part = final_sequence_of_1st_m_1st_part;
 	INDEX* cursor_1st_m_2nd_part;
