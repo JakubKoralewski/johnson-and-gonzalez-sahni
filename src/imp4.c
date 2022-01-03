@@ -28,13 +28,7 @@ void min_op(MinOp* prev, const Operation* cur) {
 }
 
 /// Num machines is not required as johnsons only works for 2 machines
-int johnsons(Input* inout_input, Schedule* inout_schedule, INDEX* inout_final_sequence) {
-	// List operation processing times p1j and p2j in two columns
-	inout_schedule->input = inout_input;
-	inout_schedule->length = 0;
-	size_t schedule_capacity = inout_input->length;
-	inout_schedule->schedule = malloc(schedule_capacity * sizeof(ScheduledJob));
-
+int johnsons(Input* inout_input, INDEX* inout_final_sequence) {
 	size_t num_jobs = inout_input->length / 2;
 	// + 1, in case of odd number of jobs one of the indices in the middle will be 0
 	size_t final_sequence_len = num_jobs + 1;
@@ -110,18 +104,11 @@ int nondecreasing_index_then_nondecreasing_machine(const Operation* a, const Ope
 }
 
 /// Also works for 2 machines only
-int gonzalez_sahni(Input* inout_input, Schedule* inout_schedule, INDEX* inout_final_sequence) {
+int gonzalez_sahni(Input* inout_input, INDEX* inout_final_sequence) {
 	qsort(
 		inout_input->operations, inout_input->length, sizeof(Operation),
 		(COMPARE_FUNC) nondecreasing_index_then_nondecreasing_machine
 	);
-
-	// List operation processing times p1j and p2j in two columns
-	inout_schedule->input = inout_input;
-	inout_schedule->length = 0;
-	size_t schedule_capacity = inout_input->length;
-	inout_schedule->schedule = malloc(schedule_capacity * sizeof(ScheduledJob));
-
 	size_t num_jobs = inout_input->length / 2;
 
 	int* map_index_to_whether_job_belongs_to_first_set = calloc(num_jobs, sizeof(int));
@@ -222,8 +209,8 @@ int gonzalez_sahni(Input* inout_input, Schedule* inout_schedule, INDEX* inout_fi
 
 // Jackson's
 
-int jacksons(Input* inout_input, Schedule* inout_schedule, INDEX* inout_final_sequence) {
-	johnsons(inout_input, inout_schedule, inout_final_sequence);
+int jacksons(Input* inout_input, INDEX* inout_final_sequence) {
+	johnsons(inout_input, inout_final_sequence);
 	fprintf(stderr, "I don't understand how a route fits into this");
 
 	exit(1);
@@ -233,7 +220,9 @@ int begins_with(const char* to_check, const char* should_be) {
 	return strncmp(to_check, should_be, strlen(should_be)) == 0;
 }
 
-int imp4(MACHINE num_machines, Schedule* out_schedule, Input* in_input, const char* mode) {
+/// out_schedule is unused as since I'm not even sure if I'll get points for these assignments I didn't want to
+/// work on creating an actual schedule from the per-machine-operation-order-sequence array
+int imp4(MACHINE num_machines, Schedule* _out_schedule, Input* in_input, const char* mode) {
 	int rv = 0;
 	if (require_set(in_input, 1 << P)) {
 		fprintf(stderr, "All algorithms require processing times!");
@@ -251,11 +240,11 @@ int imp4(MACHINE num_machines, Schedule* out_schedule, Input* in_input, const ch
 			exit(1);
 		}
 
-		johnsons(in_input, out_schedule, final_sequence);
+		johnsons(in_input, final_sequence);
 	} else if (begins_with(mode, "gon") || begins_with(mode, "br")){
-		gonzalez_sahni(in_input, out_schedule, final_sequence);
+		gonzalez_sahni(in_input, final_sequence);
 	} else if (begins_with(mode, "jack")) {
-		jacksons(in_input, out_schedule, final_sequence);
+		jacksons(in_input, final_sequence);
 	} else {
 		fprintf(stderr, "Invalid mode %s\n", mode);
 		rv = ERROR_WITH_HELP;
